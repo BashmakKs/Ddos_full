@@ -1,0 +1,103 @@
+aЧерез PowerShell (быстрее):
+Запустите PowerShell от имени администратора.
+
+Установите OpenSSH Server командой:
+
+powershell
+Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
+Дождитесь завершения установки.
+
+Установите и запустите SSH-агент (для управления ключами):
+
+powershell
+Add-WindowsCapability -Online -Name OpenSSH.Client~~~~0.0.1.0
+Настройка и запуск SSH-сервера
+1. Запуск службы SSH
+В PowerShell (администратор):
+
+powershell
+# Запустить службу
+Start-Service sshd
+
+# Настроить автозапуск
+Set-Service -Name sshd -StartupType 'Automatic'
+
+# Проверить статус
+Get-Service sshd
+2. Настройка брандмауэра (Firewall)
+Разрешите входящие подключения на порт 22:
+
+powershell
+New-NetFirewallRule -Name sshd -DisplayName 'OpenSSH Server (sshd)' -Enabled True -Direction Inbound -Protocol TCP -Action Allow -LocalPort 22
+3. Проверка работы
+С этого же сервера или с другого компьютера выполните:
+
+bash
+ssh localhost
+Или с другого компьютера:
+
+bash
+ssh пользователь@IP-адрес-сервера
+Пользователь — ваше имя пользователя Windows (например, Administrator).
+
+Пароль — ваш пароль от Windows.
+
+Способ 2: Через стороннее ПО (если OpenSSH не подходит)
+Вариант А: Bitvise SSH Server
+Скачайте Bitvise SSH Server (есть бесплатная версия для личного использования).
+
+Установите, следуя инструкциям.
+
+Настройте пользователей и права доступа через графический интерфейс.
+
+Вариант Б: freeSSHd
+Скачайте freeSSHd.
+
+Установите и запустите.
+
+В настройках добавьте пользователей и укажите метод аутентификации (пароль или ключи).
+
+Настройка аутентификации по SSH-ключам (для OpenSSH)
+1. Создайте папку для ключей пользователя
+На сервере Windows для каждого пользователя нужно создать папку authorized_keys:
+
+powershell
+# Для текущего пользователя
+mkdir $env:USERPROFILE\.ssh
+
+# Создать пустой файл authorized_keys
+New-Item -Path $env:USERPROFILE\.ssh\authorized_keys -ItemType File
+2. Добавьте публичный ключ
+Откройте файл C:\Users\ИмяПользователя\.ssh\authorized_keys в блокноте и вставьте содержимое вашего публичного ключа (с компьютера, с которого будете подключаться).
+
+3. Настройте права доступа (важно!)
+В PowerShell (администратор) выполните:
+
+powershell
+# Исправить права на папку .ssh
+icacls $env:USERPROFILE\.ssh /inheritance:r /grant "${env:USERNAME}:F" /grant "SYSTEM:F"
+
+# Исправить права на файл authorized_keys
+icacls $env:USERPROFILE\.ssh\authorized_keys /inheritance:r /grant "${env:USERNAME}:F" /grant "SYSTEM:F"
+4. Настройте файл конфигурации SSH
+Откройте файл конфигурации:
+
+powershell
+notepad C:\ProgramData\ssh\sshd_config
+Убедитесь, что там есть строки:
+
+text
+PubkeyAuthentication yes
+PasswordAuthentication yes  # или no, если хотите только по ключам
+AuthorizedKeysFile .ssh/authorized_keys
+5. Перезапустите службу
+powershell
+Restart-Service sshd
+Проверка подключения
+С клиентской машины (Linux/macOS/Windows с SSH):
+
+bash
+ssh имя_пользователя@IP_сервера
+Если настраивали ключи — подключится без пароля.
+
+Если оставили пароль — попросит ввести пароль Windows.
